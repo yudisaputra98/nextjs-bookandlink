@@ -2,18 +2,29 @@
 
 import {useEffect, useState} from "react";
 import axios from 'axios';
+import collapse from "bootstrap/js/src/collapse";
 
 export default function Home() {
   const [data, setData] = useState([])
   const [dataQueue, setDataQueue] = useState([])
   const [dataDone, setDataDone] = useState([])
-  const [isLoading, setIsLoading] = useState(false)
 
-  const fetchData = (status = 0) => {
-    axios.get(`http://localhost:8000/api/jobs?status=${status}`)
+  const handleGenerate = () => {
+      axios.get(`${process.env.NEXT_PUBLIC_API_URL}/jobs/generate?total=200`)
+          .then((res) => {
+            console.log(res)
+          }).catch((err) => {
+            console.log(err)
+          })
+  }
+
+  const fetchData = (status = "NEW") => {
+    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/jobs?status=${status}`)
         .then((res) => {
-          if(status === 0) {
+          if(status === "NEW") {
             setData(res.data.data)
+          } else if(status === "QUEUE") {
+              setDataQueue(res.data.data)
           } else {
             setDataDone(res.data.data)
           }
@@ -21,32 +32,27 @@ export default function Home() {
           console.log(err)
         })
   }
-  const fetchDataQueue = () => {
-    axios.get('http://localhost:8000/api/processes')
-        .then((res) => {
-          setDataQueue(res.data.data)
-        }).catch((err) => {
-      console.log(err)
-    })
-  }
 
   useEffect(() => {
     fetchData()
-    fetchDataQueue()
-    fetchData(2)
+    fetchData("QUEUE")
+    fetchData("SUCCESS")
 
     setInterval(() => {
       fetchData()
-      fetchDataQueue()
-      fetchData(2)
+      fetchData("QUEUE")
+      fetchData("SUCCESS")
     }, 2000)
   }, [])
 
   return (
-    <div>
-      <h3>New Job</h3>
-      <div className="table-responsive" style={{ height: "400px" }}>
-        <table className="table table-striped table-bordered mb-4">
+    <div className="container py-4">
+      <div className="d-flex justify-content-between align-items-end mb-2">
+          <h3 className="m-0">New Job</h3>
+          <button className="btn btn-primary" onClick={() => handleGenerate()}>Generate Job</button>
+      </div>
+      <div className="table-responsive mb-4" style={{ maxHeight: "400px" }}>
+        <table className="table table-striped table-bordered">
           <thead>
           <tr>
             <th scope="col">No</th>
@@ -55,12 +61,12 @@ export default function Home() {
           </tr>
           </thead>
           <tbody>
-          {data.map((data, key) => {
+          {data.map((d, key) => {
             return (
-                <tr>
+                <tr key={d.id}>
                   <th scope="row">{key+1}</th>
-                  <td>{data.job_name}</td>
-                  <td><span className="badge bg-primary">New</span></td>
+                  <td>{d.job_name}</td>
+                  <td><span className="badge bg-primary">{d.status}</span></td>
                 </tr>
             )
           })}
@@ -69,22 +75,24 @@ export default function Home() {
       </div>
 
       <h3>Queue Job</h3>
-      <div className="table-responsive" style={{ height: "400px" }}>
+      <div className="table-responsive mb-4" style={{ maxHeight: "400px" }}>
         <table className="table table-striped table-bordered">
           <thead>
           <tr>
             <th scope="col">No</th>
             <th scope="col">Job</th>
+            <th scope="col">Attempt</th>
             <th scope="col">Status</th>
           </tr>
           </thead>
           <tbody>
           {dataQueue.map((data, key) => {
             return (
-                <tr>
+                <tr key={data.id}>
                   <th scope="row">{key+1}</th>
                   <td>{data.job_name}</td>
-                  <td><span className="badge bg-warning">Queue</span></td>
+                  <td>{data.attempt}</td>
+                  <td><span className="badge bg-warning">{data.status}</span></td>
                 </tr>
             )
           })}
@@ -93,22 +101,24 @@ export default function Home() {
       </div>
 
       <h4>Job Done</h4>
-      <div className="table-responsive" style={{ height: "400px" }}>
+      <div className="table-responsive" style={{ maxHeight: "400px" }}>
         <table className="table table-striped table-bordered">
           <thead>
           <tr>
             <th scope="col">No</th>
             <th scope="col">Job</th>
+            <th scope="col">Attempt</th>
             <th scope="col">Status</th>
           </tr>
           </thead>
           <tbody>
           {dataDone.map((data, key) => {
             return (
-                <tr>
+                <tr key={data.id}>
                   <th scope="row">{key+1}</th>
                   <td>{data.job_name}</td>
-                  <td><span className="badge bg-success">Done</span></td>
+                    <td>{data.attempt}</td>
+                  <td><span className="badge bg-success">{data.status}</span></td>
                 </tr>
             )
           })}
